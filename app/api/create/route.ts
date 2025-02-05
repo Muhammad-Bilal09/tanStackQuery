@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+
 export async function POST(req: NextRequest) {
   try {
     const { title, description } = await req.json();
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const newTodo = await prisma?.todo?.create({
+    const newTodo = await prisma.todo.create({
       data: {
         title,
         description,
