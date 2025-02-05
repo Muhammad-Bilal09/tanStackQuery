@@ -36,7 +36,7 @@ export default function TodoApp() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => axios.delete(`/api/delete/${id}`),
+    mutationFn: (id: string) => axios.delete(`/api/delete/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["todos"] }),
   });
 

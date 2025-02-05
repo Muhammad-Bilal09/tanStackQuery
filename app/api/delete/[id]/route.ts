@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const todoId = params?.id;
 
-    await prisma?.todo?.delete({
-      where: { id: todoId },
+export async function DELETE(req: NextRequest) {
+  try {
+    const id = req.nextUrl.pathname.split("/").pop();
+
+    await prisma.todo.delete({
+      where: { id },
     });
 
     return NextResponse.json(
