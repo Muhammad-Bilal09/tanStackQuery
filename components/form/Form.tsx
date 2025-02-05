@@ -2,19 +2,19 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, FormEvent } from "react";
+import axios from "axios";
 import { Todo } from "@/types/Types";
 
-const fetchTodos = (): Todo[] => {
-  const storedTodos = localStorage.getItem("todos");
-  return storedTodos ? JSON.parse(storedTodos) : [];
+const fetchTodos = async (): Promise<Todo[]> => {
+  const res = await axios.get("/api/get");
+  return res.data;
 };
 
 export default function TodoApp() {
   const queryClient = useQueryClient();
-
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const { data: todos = [], isLoading } = useQuery({
     queryKey: ["todos"],
     queryFn: fetchTodos,
@@ -22,47 +22,40 @@ export default function TodoApp() {
 
   const createMutation = useMutation({
     mutationFn: (newTodo: { title: string; description: string }) =>
-      new Promise<Todo>((resolve) => {
-        const newTodoItem: Todo = {
-          id: Date.now(),
-          title: newTodo.title,
-          description: newTodo.description,
-          createdAt: new Date().toISOString(),
-        };
-        const updatedTodos = [...fetchTodos(), newTodoItem];
-        localStorage.setItem("todos", JSON.stringify(updatedTodos));
-        resolve(newTodoItem);
-      }),
+      axios.post("/api/create", newTodo),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["todos"] }),
   });
 
   const updateMutation = useMutation({
     mutationFn: (updatedTodo: Todo) =>
-      new Promise<Todo>((resolve) => {
-        const updatedTodos = fetchTodos().map((todo) =>
-          todo.id === updatedTodo.id ? updatedTodo : todo
-        );
-        localStorage.setItem("todos", JSON.stringify(updatedTodos));
-        resolve(updatedTodo);
-      }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["todos"] }),
+      axios.put(`/api/update/${updatedTodo.id}`, updatedTodo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+      setEditingTodo(null);
+    },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) =>
-      new Promise<number>((resolve) => {
-        const updatedTodos = fetchTodos().filter((todo) => todo.id !== id);
-        localStorage.setItem("todos", JSON.stringify(updatedTodos));
-        resolve(id);
-      }),
+    mutationFn: (id: number) => axios.delete(`/api/delete/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["todos"] }),
   });
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    createMutation.mutate({ title, description });
+    if (editingTodo) {
+      updateMutation.mutate({ ...editingTodo, title, description });
+    } else {
+      createMutation.mutate({ title, description });
+    }
     setTitle("");
     setDescription("");
+    setEditingTodo(null);
+  };
+
+  const handleEdit = (todo: Todo) => {
+    setEditingTodo(todo);
+    setTitle(todo.title);
+    setDescription(todo.description);
   };
 
   return (
@@ -90,15 +83,19 @@ export default function TodoApp() {
         ></textarea>
         <button
           type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+          className={`w-full ${
+            editingTodo
+              ? "bg-green-500 hover:bg-green-600"
+              : "bg-blue-500 hover:bg-blue-600"
+          } text-white py-2 rounded`}
         >
-          Add Todo
+          {editingTodo ? "Update Todo" : "Add Todo"}
         </button>
       </form>
 
       <div className="mt-6 overflow-x-auto">
         {isLoading ? (
-          <p>Loading todos...</p>
+          <p className="text-center">Loading todos...</p>
         ) : (
           <table className="w-full min-w-[600px] border border-gray-300">
             <thead>
@@ -110,35 +107,24 @@ export default function TodoApp() {
               </tr>
             </thead>
             <tbody>
-              {todos.map((todo: Todo) => (
+              {todos?.map((todo: Todo) => (
                 <tr key={todo.id} className="text-sm sm:text-base">
-                  <td className="border p-2 break-words">{todo.title}</td>
-                  <td className="border p-2 break-words">{todo.description}</td>
+                  <td className="border p-2 break-words">{todo?.title}</td>
+                  <td className="border p-2 break-words">
+                    {todo?.description}
+                  </td>
                   <td className="border p-2">
                     {new Date(todo.createdAt).toLocaleString()}
                   </td>
                   <td className="border p-2 space-y-1 sm:space-y-0 sm:space-x-2">
                     <button
-                      onClick={() => {
-                        const updatedTitle = prompt("Edit Title", todo.title);
-                        const updatedDescription = prompt(
-                          "Edit Description",
-                          todo.description
-                        );
-                        if (updatedTitle && updatedDescription) {
-                          updateMutation.mutate({
-                            ...todo,
-                            title: updatedTitle,
-                            description: updatedDescription,
-                          });
-                        }
-                      }}
+                      onClick={() => handleEdit(todo)}
                       className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 w-full sm:w-auto"
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => deleteMutation.mutate(todo.id)}
+                      onClick={() => deleteMutation?.mutate(todo.id)}
                       className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 w-full sm:w-auto"
                     >
                       Delete
