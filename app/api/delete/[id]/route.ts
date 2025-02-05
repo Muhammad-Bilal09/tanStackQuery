@@ -10,7 +10,7 @@ export async function DELETE(req: NextRequest) {
     });
 
     return NextResponse.json(
-      { message: "Todo deleted successfully!" },
+      { message: "Todo deleted successfully" },
       { status: 200 }
     );
   } catch (error) {
