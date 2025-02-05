@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-
+import prisma from "@/lib/prisma";
 export async function DELETE(req: NextRequest) {
   try {
     const id = req.nextUrl.pathname.split("/").pop();
