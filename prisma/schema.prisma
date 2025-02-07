@@ -13,3 +13,14 @@ model Todo {
   description String
   createdAt   DateTime @default(now())
 }
+
+model User {
+  name             String
+  id               String    @id @default(uuid()) @map("_id")
+  email            String    @unique
+  password         String
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  refreshToken     String?
+  accessToken      String?
+}

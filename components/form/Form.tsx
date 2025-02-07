@@ -4,6 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, FormEvent } from "react";
 import axios from "axios";
 import { Todo } from "@/types/Types";
+import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const fetchTodos = async (): Promise<Todo[]> => {
   const res = await axios.get("/api/get");
@@ -15,6 +18,9 @@ export default function TodoApp() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  const router = useRouter();
+  const { data: session } = useSession();
+
   const { data: todos = [], isLoading } = useQuery({
     queryKey: ["todos"],
     queryFn: fetchTodos,
@@ -51,15 +57,28 @@ export default function TodoApp() {
     setDescription("");
     setEditingTodo(null);
   };
-
   const handleEdit = (todo: Todo) => {
     setEditingTodo(todo);
     setTitle(todo.title);
     setDescription(todo.description);
   };
+  const handleLogout = (e: any) => {
+    signOut();
+    e.preventDefault();
+    router.push("auth/login");
+  };
 
   return (
     <div className="max-w-3xl mx-auto mt-10 p-4 sm:p-6 bg-white rounded-xl shadow-md">
+      <div className="flex justify-between">
+        <h1 className="text-green-400">Hi,{session?.user?.name}</h1>
+        <button
+          className="bg-red-500 hover:bg-red-600 text-white p-2 px-4 rounded-lg"
+          onClick={handleLogout}
+        >
+          Logout
+        </button>
+      </div>
       <h1 className="text-2xl font-bold text-center mb-4">Todo List</h1>
 
       <form
